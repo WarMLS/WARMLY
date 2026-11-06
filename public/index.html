@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WARMLY ML5v5</title>
+  <style>
+    body {
+      background: #101827;
+      color: white;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 20px;
+    }
+    h1 { color: #f5c542; }
+    .team {
+      background: #1d293b;
+      padding: 15px;
+      margin: 15px auto;
+      border-radius: 10px;
+      max-width: 400px;
+    }
+    input, button {
+      padding: 12px;
+      margin: 8px;
+      border-radius: 8px;
+      border: none;
+      font-size: 16px;
+    }
+    button {
+      background: #f5c542;
+      font-weight: bold;
+    }
+    .blue { color: #48a9ff; }
+    .red { color: #ff6262; }
+    li { text-align: left; padding: 6px; }
+  </style>
+</head>
+<body>
+  <h1>WARMLY ML5v5</h1>
+  <h2>PLAYER LOBBY</h2>
+  <p id="status">DISCONNECTED</p>
+
+  <input id="playerName" maxlength="20" placeholder="Enter your name">
+  <button id="joinButton" onclick="joinLobby()">JOIN LOBBY</button>
+
+  <div class="team">
+    <h2 class="blue">BLUE TEAM <span id="blueCount">0</span>/5</h2>
+    <ul id="bluePlayers"></ul>
+  </div>
+
+  <div class="team">
+    <h2 class="red">RED TEAM <span id="redCount">0</span>/5</h2>
+    <ul id="redPlayers"></ul>
+  </div>
+
+  <h2 id="match"></h2>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    let joined = false;
+
+    function joinLobby() {
+      const name = document.getElementById("playerName").value.trim();
+
+      if (!name) {
+        alert("Please enter your name!");
+        return;
+      }
+
+      if (!socket.connected) {
+        alert("Server not connected!");
+        return;
+      }
+
+      if (joined) return;
+
+      socket.emit("joinLobby", name);
+      joined = true;
+      document.getElementById("joinButton").disabled = true;
+      document.getElementById("status").textContent = "JOIN REQUEST SENT";
+    }
+
+    socket.on("connect", () => {
+      document.getElementById("status").textContent = "CONNECTED";
+    });
+
+    socket.on("disconnect", () => {
+      joined = false;
+      document.getElementById("joinButton").disabled = false;
+      document.getElementById("status").textContent = "DISCONNECTED";
+    });
+
+    socket.on("lobbyUpdate", (players) => {
+      const blue = players.filter(p => p.team === "BLUE");
+      const red = players.filter(p => p.team === "RED");
+
+      document.getElementById("blueCount").textContent = blue.length;
+      document.getElementById("redCount").textContent = red.length;
+
+      document.getElementById("bluePlayers").innerHTML =
+        blue.map(p => "<li>" + p.name + "</li>").join("");
+
+      document.getElementById("redPlayers").innerHTML =
+        red.map(p => "<li>" + p.name + "</li>").join("");
+    });
+
+    socket.on("lobbyError", (message) => {
+      joined = false;
+      document.getElementById("joinButton").disabled = false;
+      document.getElementById("status").textContent = message;
+    });
+
+    socket.on("matchReady", (data) => {
+      document.getElementById("match").textContent = data.message;
+    });
+  </script>
+</body>
+</html>
