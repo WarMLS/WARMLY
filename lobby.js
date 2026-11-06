@@ -1,8 +1,21 @@
-const ROOM = "warmly-5v5";
 const MAX_PLAYERS = 10;
 
 function setupLobby(io) {
   const players = new Map();
+
+  function getLobbyState() {
+    const all = [...players.values()];
+
+    return {
+      players: all,
+      blue: all.filter(p => p.team === "BLUE").length,
+      red: all.filter(p => p.team === "RED").length
+    };
+  }
+
+  function broadcastLobby() {
+    io.emit("lobbyUpdate", getLobbyState());
+  }
 
   io.on("connection", (socket) => {
     socket.on("joinLobby", (name) => {
@@ -16,7 +29,12 @@ function setupLobby(io) {
       const blueCount = [...players.values()]
         .filter(p => p.team === "BLUE").length;
 
-      const team = blueCount < 5 ? "BLUE" : "RED";
+      const redCount = [...players.values()]
+        .filter(p => p.team === "RED").length;
+
+      const team = blueCount <= redCount && blueCount < 5
+        ? "BLUE"
+        : "RED";
 
       const player = {
         id: socket.id,
@@ -25,17 +43,11 @@ function setupLobby(io) {
       };
 
       players.set(socket.id, player);
-      socket.join(ROOM);
 
-      io.to(ROOM).emit("lobbyUpdate", [...players.values()]);
-
-      io.to(ROOM).emit("teamCount", {
-        blue: [...players.values()].filter(p => p.team === "BLUE").length,
-        red: [...players.values()].filter(p => p.team === "RED").length
-      });
+      broadcastLobby();
 
       if (players.size === MAX_PLAYERS) {
-        io.to(ROOM).emit("matchReady", {
+        io.emit("matchReady", {
           message: "WARMLY 5v5 MATCH READY"
         });
       }
@@ -43,12 +55,7 @@ function setupLobby(io) {
 
     socket.on("disconnect", () => {
       if (players.delete(socket.id)) {
-        io.to(ROOM).emit("lobbyUpdate", [...players.values()]);
-
-        io.to(ROOM).emit("teamCount", {
-          blue: [...players.values()].filter(p => p.team === "BLUE").length,
-          red: [...players.values()].filter(p => p.team === "RED").length
-        });
+        broadcastLobby();
       }
     });
   });

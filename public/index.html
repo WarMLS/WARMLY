@@ -92,20 +92,21 @@
       document.getElementById("status").textContent = "DISCONNECTED";
     });
 
-    socket.on("lobbyUpdate", (players) => {
-      const blue = players.filter(p => p.team === "BLUE");
-      const red = players.filter(p => p.team === "RED");
+socket.on("lobbyUpdate", (data) => {
+  const players = data.players;
 
-      document.getElementById("blueCount").textContent = blue.length;
-      document.getElementById("redCount").textContent = red.length;
+  const blue = players.filter(p => p.team === "BLUE");
+  const red = players.filter(p => p.team === "RED");
 
-      document.getElementById("bluePlayers").innerHTML =
-        blue.map(p => "<li>" + p.name + "</li>").join("");
+  document.getElementById("blueCount").textContent = data.blue;
+  document.getElementById("redCount").textContent = data.red;
 
-      document.getElementById("redPlayers").innerHTML =
-        red.map(p => "<li>" + p.name + "</li>").join("");
-    });
+  document.getElementById("bluePlayers").innerHTML =
+    blue.map(p => "<li>" + p.name + "</li>").join("");
 
+  document.getElementById("redPlayers").innerHTML =
+    red.map(p => "<li>" + p.name + "</li>").join("");
+});
     socket.on("lobbyError", (message) => {
       joined = false;
       document.getElementById("joinButton").disabled = false;
